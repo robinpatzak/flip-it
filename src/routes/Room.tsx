@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import socket from "@/services/socket";
 import { useEffect, useState } from "react";
-import { useLocation, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 
 interface Player {
   playerName: string;
@@ -11,6 +11,7 @@ interface Player {
 }
 
 const Room = () => {
+  const navigate = useNavigate();
   const { isHost } = useLocation().state;
 
   const { roomId } = useParams();
@@ -31,6 +32,12 @@ const Room = () => {
     }
   };
 
+  const kickPlayer = (playerName: string) => {
+    if (isHost) {
+      socket.emit("kickPlayer", { roomId, playerName });
+    }
+  };
+
   useEffect(() => {
     setInviteLink(`${window.location.origin}/${roomId}`);
 
@@ -38,10 +45,15 @@ const Room = () => {
       setPlayers(updatedPlayers);
     });
 
+    socket.on("kicked", () => {
+      navigate("/");
+    });
+
     return () => {
       socket.off("updatedPlayers");
+      socket.off("kicked");
     };
-  }, [roomId]);
+  }, [roomId, navigate]);
 
   return (
     <div className="max-w-2xl mx-auto p-4 space-y-4">
@@ -66,7 +78,9 @@ const Room = () => {
           </div>
           <div className="space-y-2">
             {isHost ? (
-              <Button disabled={players.length < 2} className="w-full">Start Game</Button>
+              <Button disabled={players.length < 2} className="w-full">
+                Start Game
+              </Button>
             ) : (
               <Button disabled className="w-full">
                 Waiting for host...
@@ -77,8 +91,22 @@ const Room = () => {
             <label className="text-sm font-medium">Players in Room</label>
             <div className="space-y-1">
               {players.map((player, index) => (
-                <div key={index} className="p-2 bg-secondary rounded">
-                  {player.playerName} {player.isHost && "(Host)"}
+                <div
+                  key={index}
+                  className="flex items-center justify-between p-2 bg-secondary rounded"
+                >
+                  <span>
+                    {player.playerName} {player.isHost && "(Host)"}
+                  </span>
+                  {isHost && !player.isHost && (
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => kickPlayer(player.playerName)}
+                    >
+                      Kick
+                    </Button>
+                  )}
                 </div>
               ))}
             </div>
