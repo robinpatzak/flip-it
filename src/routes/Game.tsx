@@ -36,7 +36,7 @@ const Game = () => {
       socket.off("updateGameState");
       socket.off("turnUpdate");
     };
-  }, []);
+  }, [playerName]);
 
   const handleCardClick = (clickedCard: Card) => {
     if (
