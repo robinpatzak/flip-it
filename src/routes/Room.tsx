@@ -3,14 +3,21 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import socket from "@/services/socket";
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useLocation, useParams } from "react-router-dom";
+
+interface Player {
+  playerName: string;
+  isHost: boolean;
+}
 
 const Room = () => {
+  const { isHost } = useLocation().state;
+
   const { roomId } = useParams();
 
   const [inviteLink, setInviteLink] = useState("");
   const [copySuccess, setCopySuccess] = useState(false);
-  const [players, setPlayers] = useState<string[]>([]);
+  const [players, setPlayers] = useState<Player[]>([]);
 
   const copyToClipboard = async () => {
     try {
@@ -58,11 +65,20 @@ const Room = () => {
             </div>
           </div>
           <div className="space-y-2">
+            {isHost ? (
+              <Button disabled={players.length < 2} className="w-full">Start Game</Button>
+            ) : (
+              <Button disabled className="w-full">
+                Waiting for host...
+              </Button>
+            )}
+          </div>
+          <div className="space-y-2">
             <label className="text-sm font-medium">Players in Room</label>
             <div className="space-y-1">
               {players.map((player, index) => (
                 <div key={index} className="p-2 bg-secondary rounded">
-                  {player}
+                  {player.playerName} {player.isHost && "(Host)"}
                 </div>
               ))}
             </div>
