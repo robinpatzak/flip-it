@@ -13,6 +13,7 @@ interface ServerToClientEvents {
   roomCreated: (data: { roomId: string }) => void;
   updatePlayers: (players: Player[]) => void;
   kicked: (data: { playerName: string }) => void;
+  gameStarted: () => void;
 }
 
 interface ClientToServerEvents {
@@ -23,6 +24,7 @@ interface ClientToServerEvents {
     isHost: boolean;
   }) => void;
   kickPlayer: (data: { roomId: string; playerName: string }) => void;
+  startGame: (data: { roomId: string }) => void;
 }
 
 const PORT = 4000;
@@ -80,6 +82,12 @@ io.on(
             io.to(kickedPlayerSocketId).emit("kicked", { playerName });
           }
         }
+      }
+    });
+
+    socket.on("startGame", ({ roomId }) => {
+      if (rooms.has(roomId)) {
+        io.to(roomId).emit("gameStarted");
       }
     });
 
