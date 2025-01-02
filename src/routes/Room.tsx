@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import socket from "@/services/socket";
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
+import Game from "./Game";
 
 interface Player {
   playerName: string;
@@ -19,6 +20,7 @@ const Room = () => {
   const [inviteLink, setInviteLink] = useState("");
   const [copySuccess, setCopySuccess] = useState(false);
   const [players, setPlayers] = useState<Player[]>([]);
+  const [gameStarted, setGameStarted] = useState(false);
 
   const copyToClipboard = async () => {
     try {
@@ -38,6 +40,12 @@ const Room = () => {
     }
   };
 
+  const startGame = () => {
+    if (isHost) {
+      socket.emit("startGame", { roomId });
+    }
+  };
+
   useEffect(() => {
     setInviteLink(`${window.location.origin}/${roomId}`);
 
@@ -49,11 +57,20 @@ const Room = () => {
       navigate("/");
     });
 
+    socket.on("gameStarted", () => {
+      setGameStarted(true);
+    });
+
     return () => {
       socket.off("updatedPlayers");
       socket.off("kicked");
+      socket.off("gameStarted");
     };
   }, [roomId, navigate]);
+
+  if (gameStarted) {
+    return <Game />;
+  }
 
   return (
     <div className="max-w-2xl mx-auto p-4 space-y-4">
@@ -78,7 +95,11 @@ const Room = () => {
           </div>
           <div className="space-y-2">
             {isHost ? (
-              <Button disabled={players.length < 2} className="w-full">
+              <Button
+                onClick={startGame}
+                disabled={players.length < 2}
+                className="w-full"
+              >
                 Start Game
               </Button>
             ) : (
