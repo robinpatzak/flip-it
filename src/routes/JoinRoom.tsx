@@ -10,7 +10,14 @@ const JoinRoom = () => {
   const { roomId } = useParams();
   const navigate = useNavigate();
 
-  const handleJoin = () => {
+  const createRoom = () => {
+    socket.emit("createRoom", { playerName });
+    socket.on("roomCreated", ({ roomId }) => {
+      navigate(`/room/${roomId}`);
+    });
+  };
+
+  const joinRoom = () => {
     socket.emit("joinRoom", { roomId, playerName });
     navigate(`/room/${roomId}`);
   };
@@ -30,13 +37,24 @@ const JoinRoom = () => {
               placeholder="Enter your name"
             />
           </div>
-          <Button
-            onClick={handleJoin}
-            disabled={!playerName}
-            className="w-full"
-          >
-            Join Room
-          </Button>
+          <div className="space-y-4">
+            <Button
+              onClick={joinRoom}
+              disabled={!playerName || !roomId}
+              className="w-full"
+            >
+              Join Room
+            </Button>
+          </div>
+          <div className="space-y-4">
+            <Button
+              onClick={createRoom}
+              className="w-full"
+              disabled={!playerName}
+            >
+              Create New Room
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>

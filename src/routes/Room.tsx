@@ -25,15 +25,15 @@ const Room = () => {
   };
 
   useEffect(() => {
-    setInviteLink(`${window.location.origin}/join/${roomId}`);
+    setInviteLink(`${window.location.origin}/${roomId}`);
 
     socket.on("updatePlayers", (updatedPlayers) => {
       setPlayers(updatedPlayers);
     });
 
     return () => {
-        socket.off("updatedPlayers");
-      };
+      socket.off("updatedPlayers");
+    };
   }, [roomId]);
 
   return (
