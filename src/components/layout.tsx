@@ -15,7 +15,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           <ModeToggle />
         </div>
       </header>
-      <main className="flex-1">{children}</main>
+      <main className="flex-1 flex flex-col justify-center">
+        <div>{children}</div>
+      </main>
       <footer className="p-2 border-t">
         <div className="max-w-7xl mx-auto flex justify-end">
           <span className="flex items-center gap-1 text-sm">
