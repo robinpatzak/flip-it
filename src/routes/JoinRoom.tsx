@@ -13,13 +13,13 @@ const JoinRoom = () => {
   const createRoom = () => {
     socket.emit("createRoom", { playerName, isHost: true });
     socket.on("roomCreated", ({ roomId }) => {
-      navigate(`/room/${roomId}`, { state: { isHost: true } });
+      navigate(`/room/${roomId}`, { state: { playerName, isHost: true } });
     });
   };
 
   const joinRoom = () => {
     socket.emit("joinRoom", { roomId, playerName, isHost: false });
-    navigate(`/room/${roomId}`, { state: { isHost: false } });
+    navigate(`/room/${roomId}`, { state: { playerName, isHost: false } });
   };
 
   return (

@@ -1,6 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import socket from "@/services/socket";
 import { useEffect, useState } from "react";
+import { useLocation, useParams } from "react-router-dom";
 
 interface Card {
   id: number;
@@ -9,74 +11,60 @@ interface Card {
   isMatched: boolean;
 }
 
-const DUMMY_CARDS: Card[] = [
-  { id: 1, face: "🐶", isFlipped: false, isMatched: false },
-  { id: 2, face: "🐱", isFlipped: false, isMatched: false },
-  { id: 3, face: "🐰", isFlipped: false, isMatched: false },
-  { id: 4, face: "🦊", isFlipped: false, isMatched: false },
-  { id: 5, face: "🐶", isFlipped: false, isMatched: false },
-  { id: 6, face: "🐱", isFlipped: false, isMatched: false },
-  { id: 7, face: "🐰", isFlipped: false, isMatched: false },
-  { id: 8, face: "🦊", isFlipped: false, isMatched: false },
-];
-
-const flipTimeoutLength = 1000;
-
 const Game = () => {
+  const { playerName } = useLocation().state;
+  const { roomId } = useParams();
+
   const [cards, setCards] = useState<Card[]>([]);
-  const [flippedCards, setFlippedCards] = useState<Card[]>([]);
+  const [currentTurn, setCurrentTurn] = useState("");
   const [canFlip, setCanFlip] = useState(true);
 
   useEffect(() => {
-    const shuffledCards = [...DUMMY_CARDS].sort(() => Math.random() - 0.5);
-    setCards(shuffledCards);
+    console.log(playerName);
+    socket.on("updateGameState", ({ cards, currentTurn, flippedCards }) => {
+      setCards(cards);
+      setCurrentTurn(currentTurn);
+      setCanFlip(flippedCards.length < 2);
+    });
+
+    socket.on("turnUpdate", (playerName) => {
+      setCurrentTurn(playerName);
+      setCanFlip(true);
+    });
+
+    return () => {
+      socket.off("updateGameState");
+      socket.off("turnUpdate");
+    };
   }, []);
 
-  useEffect(() => {
-    if (flippedCards.length === 2) {
-      setCanFlip(false);
-
-      if (flippedCards[0].face === flippedCards[1].face) {
-        setCards(
-          cards.map((card) =>
-            flippedCards.some((flippedCard) => flippedCard.id === card.id)
-              ? { ...card, isMatched: true }
-              : card
-          )
-        );
-        setFlippedCards([]);
-        setCanFlip(true);
-      } else {
-        setTimeout(() => {
-          setCards(
-            cards.map((card) =>
-              flippedCards.some((flippedCard) => flippedCard.id === card.id)
-                ? { ...card, isFlipped: false }
-                : card
-            )
-          );
-          setFlippedCards([]);
-          setCanFlip(true);
-        }, flipTimeoutLength);
-      }
-    }
-  }, [flippedCards, cards]);
-
   const handleCardClick = (clickedCard: Card) => {
-    if (!canFlip || clickedCard.isFlipped || clickedCard.isMatched) return;
+    if (
+      currentTurn !== playerName ||
+      !canFlip ||
+      clickedCard.isFlipped ||
+      clickedCard.isMatched
+    )
+      return;
 
-    const updatedCards = cards.map((card) =>
-      card.id === clickedCard.id ? { ...card, isFlipped: true } : card
-    );
-    setCards(updatedCards);
-    setFlippedCards([...flippedCards, clickedCard]);
+    socket.emit("flipCard", {
+      roomId,
+      cardId: clickedCard.id,
+      playerName,
+    });
   };
 
   return (
-    <div className="max-w-2xl mx-auto p-4">
+    <div className="max-w-4xl mx-auto p-4">
       <Card>
         <CardHeader>
-          <CardTitle>Memory Game</CardTitle>
+          <CardTitle className="flex justify-between items-center">
+            <span>Memory Game</span>
+            <span className="text-sm">
+              Current Turn: {currentTurn}
+              {currentTurn === playerName && " (Your Turn)"}
+            </span>
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-4 gap-4">
@@ -84,8 +72,13 @@ const Game = () => {
               <Button
                 key={card.id}
                 onClick={() => handleCardClick(card)}
-                className="h-24 text-3xl"
+                className={`h-24 text-3xl ${
+                  currentTurn === playerName
+                    ? "cursor-pointer"
+                    : "cursor-not-allowed"
+                }`}
                 variant={card.isMatched ? "ghost" : "outline"}
+                disabled={currentTurn !== playerName}
               >
                 {card.isFlipped || card.isMatched ? card.face : "?"}
               </Button>
