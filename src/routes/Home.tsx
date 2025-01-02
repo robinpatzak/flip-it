@@ -1,10 +1,21 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import socket from "@/services/socket";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 const Home = () => {
+  const navigate = useNavigate();
+
   const [playerName, setPlayerName] = useState("");
+
+  const createRoom = () => {
+    socket.emit("createRoom", { playerName });
+    socket.on("roomCreated", ({ roomId }) => {
+      navigate(`/room/${roomId}`);
+    });
+  };
 
   return (
     <div className="max-w-2xl mx-auto p-4 space-y-4">
@@ -26,7 +37,7 @@ const Home = () => {
 
           <div className="space-y-4">
             <Button
-              onClick={() => console.log("Create room")}
+              onClick={createRoom}
               className="w-full"
               disabled={!playerName}
             >
