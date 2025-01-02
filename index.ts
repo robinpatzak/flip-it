@@ -14,19 +14,19 @@ const io = new Server(httpServer, {
 const rooms = new Map();
 
 io.on("connection", (socket) => {
-  socket.on("createRoom", ({ playerName }) => {
+  socket.on("createRoom", ({ playerName, isHost }) => {
     const roomId = uuidv4();
-    rooms.set(roomId, [playerName]);
+    rooms.set(roomId, [{ playerName, isHost }]);
     socket.join(roomId);
     io.to(roomId).emit("roomCreated", { roomId });
     io.to(roomId).emit("updatePlayers", rooms.get(roomId));
     console.log(`${playerName} created room ${roomId}`);
   });
 
-  socket.on("joinRoom", ({ roomId, playerName }) => {
+  socket.on("joinRoom", ({ roomId, playerName, isHost }) => {
     if (rooms.has(roomId)) {
       const players = rooms.get(roomId);
-      players.push(playerName);
+      players.push({ playerName, isHost });
       rooms.set(roomId, players);
       socket.join(roomId);
       io.to(roomId).emit("updatePlayers", players);
