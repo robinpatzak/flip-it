@@ -18,8 +18,10 @@ const JoinRoom = () => {
   };
 
   const joinRoom = () => {
-    socket.emit("joinRoom", { roomId, playerName });
-    navigate(`/room/${roomId}`);
+    if (roomId) {
+      socket.emit("joinRoom", { roomId, playerName });
+      navigate(`/room/${roomId}`);
+    }
   };
 
   return (

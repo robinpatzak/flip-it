@@ -38,7 +38,7 @@ const Room = () => {
   };
 
   const startGame = () => {
-    if (isHost) {
+    if (isHost && roomId) {
       socket.emit("startGame", { roomId });
     }
   };

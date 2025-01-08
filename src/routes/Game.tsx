@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Player } from "./Room";
 
-interface Card {
+export interface Card {
   id: number;
   face: string;
   isFlipped: boolean;
@@ -54,7 +54,8 @@ const Game: React.FC<GameProps> = ({ isHost, players, playerName }) => {
       currentTurn !== playerName ||
       !canFlip ||
       clickedCard.isFlipped ||
-      clickedCard.isMatched
+      clickedCard.isMatched ||
+      !roomId
     )
       return;
 
