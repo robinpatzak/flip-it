@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Game from "./Game";
 import PlayerList from "@/components/PlayerList";
-import { Player } from "@/types/room";
+import { GameState, Player } from "@/types/room";
 
 const Room = () => {
   const navigate = useNavigate();
@@ -16,7 +16,7 @@ const Room = () => {
   const [inviteLink, setInviteLink] = useState("");
   const [copySuccess, setCopySuccess] = useState(false);
   const [players, setPlayers] = useState<Player[]>([]);
-  const [gameStarted, setGameStarted] = useState(false);
+  const [gameState, setGameState] = useState<GameState>("waiting");
   const [isHost, setIsHost] = useState(false);
   const [playerName, setPlayerName] = useState("");
 
@@ -42,7 +42,7 @@ const Room = () => {
     setInviteLink(`${window.location.origin}/${roomId}`);
 
     if (roomId) {
-      socket.emit("requestRoomState", { roomId });
+      socket.emit("requestRoom", { roomId });
     }
 
     socket.on("updatePlayers", (updatedPlayers) => {
@@ -62,11 +62,7 @@ const Room = () => {
     });
 
     socket.on("gameStarted", () => {
-      setGameStarted(true);
-    });
-
-    socket.on("endGame", () => {
-      setGameStarted(false);
+      setGameState("playing");
     });
 
     return () => {
@@ -76,8 +72,15 @@ const Room = () => {
     };
   }, [roomId, navigate]);
 
-  if (gameStarted) {
-    return <Game isHost={isHost} players={players} playerName={playerName} />;
+  if (gameState === "playing" || gameState === "ending") {
+    return (
+      <Game
+        isHost={isHost}
+        players={players}
+        playerName={playerName}
+        setGameState={setGameState}
+      />
+    );
   }
 
   return (

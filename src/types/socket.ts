@@ -1,4 +1,4 @@
-import { Player, MemoryCard } from "./room";
+import { Player, Game } from "./room";
 
 export interface ServerToClientEvents {
   roomCreated: (data: { roomId: string }) => void;
@@ -6,11 +6,7 @@ export interface ServerToClientEvents {
   kicked: (data: { playerName: string }) => void;
   isHost: () => void;
   gameStarted: () => void;
-  updateGameState: (data: {
-    cards: MemoryCard[];
-    currentTurn: string;
-    flippedCards: MemoryCard[];
-  }) => void;
+  updateGame: (data: Game) => void;
   turnUpdate: (playerName: string) => void;
   endGame: () => void;
 }
@@ -18,8 +14,8 @@ export interface ServerToClientEvents {
 export interface ClientToServerEvents {
   createRoom: (data: { playerName: string }) => void;
   joinRoom: (data: { roomId: string; playerName: string }) => void;
-  requestRoomState: (data: { roomId: string }) => void;
-  requestGameState: (data: { roomId: string }) => void;
+  requestRoom: (data: { roomId: string }) => void;
+  requestGame: (data: { roomId: string }) => void;
   kickPlayer: (data: { roomId: string; playerName: string }) => void;
   startGame: (data: { roomId: string }) => void;
   flipCard: (data: {

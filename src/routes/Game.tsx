@@ -2,17 +2,23 @@ import PlayerList from "@/components/PlayerList";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import socket from "@/services/socket";
-import { MemoryCard, Player } from "@/types/room";
-import { useEffect, useState } from "react";
+import { GameState, MemoryCard, Player } from "@/types/room";
+import { SetStateAction, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 interface GameProps {
   isHost: boolean;
   players: Player[];
   playerName: string;
+  setGameState: React.Dispatch<SetStateAction<GameState>>;
 }
 
-const Game: React.FC<GameProps> = ({ isHost, players, playerName }) => {
+const Game: React.FC<GameProps> = ({
+  isHost,
+  players,
+  playerName,
+  setGameState,
+}) => {
   const navigate = useNavigate();
   const { roomId } = useParams();
 
@@ -22,14 +28,19 @@ const Game: React.FC<GameProps> = ({ isHost, players, playerName }) => {
 
   useEffect(() => {
     if (roomId) {
-      socket.emit("requestGameState", { roomId });
+      socket.emit("requestGame", { roomId });
     }
 
-    socket.on("updateGameState", ({ cards, currentTurn, flippedCards }) => {
-      setCards(cards);
-      setCurrentTurn(currentTurn);
-      setCanFlip(flippedCards.length < 2);
-    });
+    socket.on(
+      "updateGame",
+      ({ gameState, cards, currentTurn, flippedCards }) => {
+        if (!cards || !currentTurn || !flippedCards) return;
+        setCards(cards);
+        setCurrentTurn(currentTurn);
+        setCanFlip(flippedCards.length < 2);
+        setGameState(gameState);
+      }
+    );
 
     socket.on("turnUpdate", (playerName) => {
       setCurrentTurn(playerName);
@@ -37,10 +48,10 @@ const Game: React.FC<GameProps> = ({ isHost, players, playerName }) => {
     });
 
     return () => {
-      socket.off("updateGameState");
+      socket.off("updateGame");
       socket.off("turnUpdate");
     };
-  }, [playerName, isHost, navigate, roomId]);
+  }, [playerName, isHost, navigate, roomId, setGameState]);
 
   const handleCardClick = (clickedCard: MemoryCard) => {
     if (
