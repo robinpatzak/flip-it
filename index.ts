@@ -27,17 +27,22 @@ interface Card {
   isMatched: boolean;
 }
 
+type GameState = "waiting" | "playing" | "ending";
+
+interface Game {
+  gameState: GameState;
+  cards?: Card[];
+  currentTurn?: string;
+  flippedCards?: Card[];
+}
+
 interface ServerToClientEvents {
   roomCreated: (data: { roomId: string }) => void;
   updatePlayers: (players: Player[]) => void;
   kicked: (data: { playerName: string }) => void;
   isHost: () => void;
   gameStarted: () => void;
-  updateGameState: (data: {
-    cards: Card[];
-    currentTurn: string;
-    flippedCards: Card[];
-  }) => void;
+  updateGame: (data: Game) => void;
   turnUpdate: (playerName: string) => void;
   endGame: () => void;
 }
@@ -45,8 +50,8 @@ interface ServerToClientEvents {
 interface ClientToServerEvents {
   createRoom: (data: { playerName: string }) => void;
   joinRoom: (data: { roomId: string; playerName: string }) => void;
-  requestRoomState: (data: { roomId: string }) => void;
-  requestGameState: (data: { roomId: string }) => void;
+  requestRoom: (data: { roomId: string }) => void;
+  requestGame: (data: { roomId: string }) => void;
   kickPlayer: (data: { roomId: string; playerName: string }) => void;
   startGame: (data: { roomId: string }) => void;
   flipCard: (data: {
@@ -56,16 +61,6 @@ interface ClientToServerEvents {
   }) => void;
 }
 
-const gameStates = new Map<
-  string,
-  {
-    cards: Card[];
-    currentTurn: string;
-    flippedCards: Card[];
-    gameStarted: boolean;
-  }
->();
-
 const PORT = 4000;
 
 const app = express();
@@ -74,17 +69,20 @@ const io = new Server<ClientToServerEvents, ServerToClientEvents>(httpServer, {
   cors: { origin: "http://localhost:5173" },
 });
 
-const rooms: Map<string, Player[]> = new Map();
+const rooms: Map<string, { players: Player[]; game: Game }> = new Map();
 
 io.on(
   "connection",
   (socket: Socket<ClientToServerEvents, ServerToClientEvents>) => {
     socket.on("createRoom", async ({ playerName }) => {
       const roomId = uuidv4();
-      rooms.set(roomId, [{ playerName, isHost: true, socketId: socket.id }]);
+      rooms.set(roomId, {
+        players: [{ playerName, isHost: true, socketId: socket.id }],
+        game: { gameState: "waiting" },
+      });
       await socket.join(roomId);
       io.to(roomId).emit("roomCreated", { roomId });
-      const players = rooms.get(roomId);
+      const players = rooms.get(roomId)?.players;
       if (players) {
         io.to(roomId).emit("updatePlayers", players);
         console.info(`${playerName} created room ${roomId}`);
@@ -93,20 +91,19 @@ io.on(
 
     socket.on("joinRoom", async ({ roomId, playerName }) => {
       if (rooms.has(roomId)) {
-        const players = rooms.get(roomId);
-        if (players) {
-          players.push({ playerName, isHost: false, socketId: socket.id });
-          rooms.set(roomId, players);
+        const room = rooms.get(roomId);
+        if (room) {
+          room.players.push({ playerName, isHost: false, socketId: socket.id });
+          rooms.set(roomId, { ...room, players: room.players });
           await socket.join(roomId);
-          io.to(roomId).emit("updatePlayers", players);
-          const gameState = gameStates.get(roomId);
-          if (gameState?.gameStarted) {
-            const joiningPlayerSocketId = players.find(
+          io.to(roomId).emit("updatePlayers", room.players);
+          if (room.game.gameState === "playing") {
+            const joiningPlayerSocketId = room.players.find(
               (player) => player.playerName === playerName
             )?.socketId;
             if (joiningPlayerSocketId) {
               io.to(roomId).emit("gameStarted");
-              io.to(joiningPlayerSocketId).emit("updateGameState", gameState);
+              io.to(joiningPlayerSocketId).emit("updateGame", room.game);
             }
           } else {
             console.info(`${playerName} joined room ${roomId}`);
@@ -115,46 +112,47 @@ io.on(
       }
     });
 
-    socket.on("requestRoomState", ({ roomId }) => {
-      const players = rooms.get(roomId);
+    socket.on("requestRoom", ({ roomId }) => {
+      const players = rooms.get(roomId)?.players;
       if (players) {
         io.to(roomId).emit("updatePlayers", players);
       }
     });
 
-    socket.on("requestGameState", ({ roomId }) => {
-      const gameState = gameStates.get(roomId);
-      if (gameState) {
-        io.to(roomId).emit("updateGameState", gameState);
+    socket.on("requestGame", ({ roomId }) => {
+      const game = rooms.get(roomId)?.game;
+      if (game) {
+        io.to(roomId).emit("updateGame", game);
       }
     });
 
     socket.on("kickPlayer", ({ roomId, playerName }) => {
       if (rooms.has(roomId)) {
-        const players = rooms.get(roomId);
-        if (players) {
-          const kickedPlayerSocketId = players.find(
+        const room = rooms.get(roomId);
+        if (room) {
+          const kickedPlayerSocketId = room.players.find(
             (player) => player.playerName === playerName
           )?.socketId;
-          const updatedPlayers = players.filter(
+          const updatedPlayers = room.players.filter(
             (player) => player.playerName !== playerName
           );
-          rooms.set(roomId, updatedPlayers);
+          rooms.set(roomId, { ...room, players: updatedPlayers });
           io.to(roomId).emit("updatePlayers", updatedPlayers);
 
-          const gameState = gameStates.get(roomId);
+          const game = room.game;
 
-          if (gameState?.currentTurn === playerName) {
-            const currentPlayerIndex = players.findIndex(
+          if (game?.currentTurn === playerName) {
+            const currentPlayerIndex = room.players.findIndex(
               (player) => player.playerName === playerName
             );
-            const nextPlayerIndex = (currentPlayerIndex + 1) % players.length;
-            const nextPlayer = players[nextPlayerIndex].playerName;
+            const nextPlayerIndex =
+              (currentPlayerIndex + 1) % room.players.length;
+            const nextPlayer = room.players[nextPlayerIndex].playerName;
 
-            gameState.currentTurn = nextPlayer;
-            gameState.flippedCards = [];
+            game.currentTurn = nextPlayer;
+            game.flippedCards = [];
 
-            io.to(roomId).emit("updateGameState", gameState);
+            io.to(roomId).emit("updateGame", game);
             io.to(roomId).emit("turnUpdate", nextPlayer);
           }
 
@@ -167,8 +165,8 @@ io.on(
 
     socket.on("startGame", ({ roomId }) => {
       if (rooms.has(roomId)) {
-        const players = rooms.get(roomId);
-        if (players) {
+        const room = rooms.get(roomId);
+        if (room) {
           const newCards: Card[] = DUMMY_CARDS.map((card) => ({
             id: card.id,
             face: card.face,
@@ -178,29 +176,36 @@ io.on(
 
           const shuffledCards = [...newCards].sort(() => Math.random() - 0.5);
 
-          gameStates.set(roomId, {
+          room.game = {
             cards: shuffledCards,
-            currentTurn: players[0].playerName,
+            currentTurn: room.players[0].playerName,
             flippedCards: [],
-            gameStarted: true,
-          });
+            gameState: "playing",
+          };
 
-          const gameState = gameStates.get(roomId);
-          if (gameState) {
-            io.to(roomId).emit("updateGameState", gameState);
+          if (room.game) {
+            io.to(roomId).emit("updateGame", room.game);
           }
           io.to(roomId).emit("gameStarted");
-          io.to(roomId).emit("turnUpdate", players[0].playerName);
+          io.to(roomId).emit("turnUpdate", room.players[0].playerName);
         }
       }
     });
 
     socket.on("flipCard", ({ roomId, cardId, playerName }) => {
-      const gameState = gameStates.get(roomId);
-      if (!gameState || gameState.currentTurn !== playerName) return;
+      const game = rooms.get(roomId)?.game;
+      if (
+        !game ||
+        game.currentTurn !== playerName ||
+        !game.cards ||
+        !game.flippedCards
+      )
+        return;
 
-      const { cards, flippedCards } = gameState;
+      const { cards, flippedCards } = game;
+
       const cardToFlip = cards.find((card) => card.id === cardId);
+
       if (!cardToFlip || cardToFlip.isFlipped || cardToFlip.isMatched) return;
 
       cardToFlip.isFlipped = true;
@@ -222,9 +227,13 @@ io.on(
 
         const allMatched = cards.every((card) => card.isMatched);
         if (allMatched) {
-          io.to(roomId).emit("updateGameState", gameState);
           io.to(roomId).emit("endGame");
-          gameStates.delete(roomId);
+          game.gameState = "ending";
+          io.to(roomId).emit("updateGame", game);
+          setTimeout(() => {
+            game.gameState = "waiting";
+            io.to(roomId).emit("updateGame", game);
+          }, 1000);
           return;
         }
 
@@ -241,7 +250,7 @@ io.on(
             });
           }
 
-          const players = rooms.get(roomId);
+          const players = rooms.get(roomId)?.players;
           if (players) {
             const currentPlayerIndex = players.findIndex(
               (player) => player.playerName === playerName
@@ -249,58 +258,56 @@ io.on(
             const nextPlayerIndex = (currentPlayerIndex + 1) % players.length;
             const nextPlayer = players[nextPlayerIndex].playerName;
 
-            gameState.currentTurn = nextPlayer;
-            gameState.flippedCards = [];
+            game.currentTurn = nextPlayer;
+            game.flippedCards = [];
 
-            io.to(roomId).emit("updateGameState", gameState);
+            io.to(roomId).emit("updateGame", game);
             io.to(roomId).emit("turnUpdate", nextPlayer);
           }
         }, 1000);
       }
-      gameState.flippedCards = updateFlippedCards;
-      io.to(roomId).emit("updateGameState", gameState);
+      game.flippedCards = updateFlippedCards;
+      io.to(roomId).emit("updateGame", game);
     });
 
     socket.on("disconnect", () => {
-      rooms.forEach((players, roomId) => {
-        const disconnectedPlayerIndex = players.findIndex(
+      rooms.forEach((room, roomId) => {
+        const disconnectedPlayerIndex = room.players.findIndex(
           (player) => player.socketId === socket.id
         );
 
         if (disconnectedPlayerIndex !== -1) {
-          const disconnectedPlayer = players[disconnectedPlayerIndex];
+          const disconnectedPlayer = room.players[disconnectedPlayerIndex];
           console.info(
             `${disconnectedPlayer.playerName} disconnected from room ${roomId}`
           );
 
-          players.splice(disconnectedPlayerIndex, 1);
+          room.players.splice(disconnectedPlayerIndex, 1);
 
-          if (disconnectedPlayer.isHost && players.length > 0) {
-            players[0].isHost = true;
-            console.info(`New host is ${players[0].playerName}`);
+          if (disconnectedPlayer.isHost && room.players.length > 0) {
+            room.players[0].isHost = true;
+            console.info(`New host is ${room.players[0].playerName}`);
           }
 
-          if (players.length === 0) {
+          if (room.players.length === 0) {
             console.info(`${roomId} is now empty. Deleting.`);
             rooms.delete(roomId);
-            gameStates.delete(roomId);
           } else {
-            rooms.set(roomId, players);
-            io.to(roomId).emit("updatePlayers", players);
+            rooms.set(roomId, room);
+            io.to(roomId).emit("updatePlayers", room.players);
           }
 
-          const gameState = gameStates.get(roomId);
           if (
-            gameState &&
-            gameState.currentTurn === disconnectedPlayer.playerName
+            room.game &&
+            room.game.currentTurn === disconnectedPlayer.playerName
           ) {
             const nextPlayerIndex = 0;
-            const nextPlayer = players[nextPlayerIndex].playerName;
+            const nextPlayer = room.players[nextPlayerIndex].playerName;
 
-            gameState.currentTurn = nextPlayer;
-            gameState.flippedCards = [];
+            room.game.currentTurn = nextPlayer;
+            room.game.flippedCards = [];
 
-            io.to(roomId).emit("updateGameState", gameState);
+            io.to(roomId).emit("updateGame", room.game);
             io.to(roomId).emit("turnUpdate", nextPlayer);
           }
         }
