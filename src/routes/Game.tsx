@@ -1,8 +1,10 @@
+import PlayerList from "@/components/PlayerList";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import socket from "@/services/socket";
 import { useEffect, useState } from "react";
-import { useLocation, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
+import { Player } from "./Room";
 
 interface Card {
   id: number;
@@ -11,8 +13,14 @@ interface Card {
   isMatched: boolean;
 }
 
-const Game = () => {
-  const { playerName } = useLocation().state;
+interface GameProps {
+  isHost: boolean;
+  players: Player[];
+  playerName: string;
+}
+
+const Game: React.FC<GameProps> = ({ isHost, players, playerName }) => {
+  const navigate = useNavigate();
   const { roomId } = useParams();
 
   const [cards, setCards] = useState<Card[]>([]);
@@ -20,7 +28,10 @@ const Game = () => {
   const [canFlip, setCanFlip] = useState(true);
 
   useEffect(() => {
-    console.log(playerName);
+    if (roomId) {
+      socket.emit("requestGameState", { roomId });
+    }
+
     socket.on("updateGameState", ({ cards, currentTurn, flippedCards }) => {
       setCards(cards);
       setCurrentTurn(currentTurn);
@@ -36,7 +47,7 @@ const Game = () => {
       socket.off("updateGameState");
       socket.off("turnUpdate");
     };
-  }, [playerName]);
+  }, [playerName, isHost, navigate, roomId]);
 
   const handleCardClick = (clickedCard: Card) => {
     if (
@@ -86,6 +97,9 @@ const Game = () => {
           </div>
         </CardContent>
       </Card>
+      {roomId && (
+        <PlayerList isHost={isHost} players={players} roomId={roomId} />
+      )}
     </div>
   );
 };

@@ -3,17 +3,18 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import socket from "@/services/socket";
 import { useEffect, useState } from "react";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import Game from "./Game";
+import PlayerList from "@/components/PlayerList";
 
-interface Player {
+export interface Player {
   playerName: string;
   isHost: boolean;
+  socketId: string;
 }
 
 const Room = () => {
   const navigate = useNavigate();
-  const { isHost } = useLocation().state;
 
   const { roomId } = useParams();
 
@@ -21,6 +22,8 @@ const Room = () => {
   const [copySuccess, setCopySuccess] = useState(false);
   const [players, setPlayers] = useState<Player[]>([]);
   const [gameStarted, setGameStarted] = useState(false);
+  const [isHost, setIsHost] = useState(false);
+  const [playerName, setPlayerName] = useState("");
 
   const copyToClipboard = async () => {
     try {
@@ -34,12 +37,6 @@ const Room = () => {
     }
   };
 
-  const kickPlayer = (playerName: string) => {
-    if (isHost) {
-      socket.emit("kickPlayer", { roomId, playerName });
-    }
-  };
-
   const startGame = () => {
     if (isHost) {
       socket.emit("startGame", { roomId });
@@ -49,8 +46,20 @@ const Room = () => {
   useEffect(() => {
     setInviteLink(`${window.location.origin}/${roomId}`);
 
-    socket.on("updatePlayers", (updatedPlayers) => {
+    if (roomId) {
+      socket.emit("requestRoomState", { roomId });
+    }
+
+    socket.on("updatePlayers", (updatedPlayers: Player[]) => {
       setPlayers(updatedPlayers);
+
+      const currentPlayer = updatedPlayers.find(
+        (player) => player.socketId === socket.id
+      );
+      if (currentPlayer) {
+        setIsHost(currentPlayer.isHost);
+        setPlayerName(currentPlayer.playerName);
+      }
     });
 
     socket.on("kicked", () => {
@@ -61,15 +70,19 @@ const Room = () => {
       setGameStarted(true);
     });
 
+    socket.on("endGame", () => {
+      setGameStarted(false);
+    });
+
     return () => {
-      socket.off("updatedPlayers");
+      socket.off("updatePlayers");
       socket.off("kicked");
       socket.off("gameStarted");
     };
   }, [roomId, navigate]);
 
   if (gameStarted) {
-    return <Game />;
+    return <Game isHost={isHost} players={players} playerName={playerName} />;
   }
 
   return (
@@ -97,7 +110,7 @@ const Room = () => {
             {isHost ? (
               <Button
                 onClick={startGame}
-                disabled={players.length < 2}
+                disabled={!players.length}
                 className="w-full"
               >
                 Start Game
@@ -108,32 +121,11 @@ const Room = () => {
               </Button>
             )}
           </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Players in Room</label>
-            <div className="space-y-1">
-              {players.map((player, index) => (
-                <div
-                  key={index}
-                  className="flex items-center justify-between p-2 bg-secondary rounded"
-                >
-                  <span>
-                    {player.playerName} {player.isHost && "(Host)"}
-                  </span>
-                  {isHost && !player.isHost && (
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => kickPlayer(player.playerName)}
-                    >
-                      Kick
-                    </Button>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
         </CardContent>
       </Card>
+      {roomId && (
+        <PlayerList isHost={isHost} players={players} roomId={roomId} />
+      )}
     </div>
   );
 };

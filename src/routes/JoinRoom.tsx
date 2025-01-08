@@ -11,15 +11,15 @@ const JoinRoom = () => {
   const navigate = useNavigate();
 
   const createRoom = () => {
-    socket.emit("createRoom", { playerName, isHost: true });
+    socket.emit("createRoom", { playerName });
     socket.on("roomCreated", ({ roomId }) => {
-      navigate(`/room/${roomId}`, { state: { playerName, isHost: true } });
+      navigate(`/room/${roomId}`);
     });
   };
 
   const joinRoom = () => {
-    socket.emit("joinRoom", { roomId, playerName, isHost: false });
-    navigate(`/room/${roomId}`, { state: { playerName, isHost: false } });
+    socket.emit("joinRoom", { roomId, playerName });
+    navigate(`/room/${roomId}`);
   };
 
   return (
