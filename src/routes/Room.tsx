@@ -6,12 +6,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Game from "./Game";
 import PlayerList from "@/components/PlayerList";
-
-export interface Player {
-  playerName: string;
-  isHost: boolean;
-  socketId: string;
-}
+import { Player } from "@/types/room";
 
 const Room = () => {
   const navigate = useNavigate();
@@ -50,7 +45,7 @@ const Room = () => {
       socket.emit("requestRoomState", { roomId });
     }
 
-    socket.on("updatePlayers", (updatedPlayers: Player[]) => {
+    socket.on("updatePlayers", (updatedPlayers) => {
       setPlayers(updatedPlayers);
 
       const currentPlayer = updatedPlayers.find(

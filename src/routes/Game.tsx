@@ -2,16 +2,9 @@ import PlayerList from "@/components/PlayerList";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import socket from "@/services/socket";
+import { MemoryCard, Player } from "@/types/room";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Player } from "./Room";
-
-export interface Card {
-  id: number;
-  face: string;
-  isFlipped: boolean;
-  isMatched: boolean;
-}
 
 interface GameProps {
   isHost: boolean;
@@ -23,7 +16,7 @@ const Game: React.FC<GameProps> = ({ isHost, players, playerName }) => {
   const navigate = useNavigate();
   const { roomId } = useParams();
 
-  const [cards, setCards] = useState<Card[]>([]);
+  const [cards, setCards] = useState<MemoryCard[]>([]);
   const [currentTurn, setCurrentTurn] = useState("");
   const [canFlip, setCanFlip] = useState(true);
 
@@ -49,7 +42,7 @@ const Game: React.FC<GameProps> = ({ isHost, players, playerName }) => {
     };
   }, [playerName, isHost, navigate, roomId]);
 
-  const handleCardClick = (clickedCard: Card) => {
+  const handleCardClick = (clickedCard: MemoryCard) => {
     if (
       currentTurn !== playerName ||
       !canFlip ||

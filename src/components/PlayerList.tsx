@@ -1,8 +1,8 @@
 import React from "react";
 import { Button } from "./ui/button";
-import { Player } from "@/routes/Room";
 import socket from "@/services/socket";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { Player } from "@/types/room";
 
 interface PlayerListProps {
   isHost: boolean;
