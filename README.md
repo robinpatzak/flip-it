@@ -106,10 +106,10 @@ npm run dev
 Or run them separately:
 ```bash
 # Start frontend only
-npm run dev:frontend
+npm run start:frontend
 
 # Start backend only
-npm run dev:backend
+npm run start:backend
 ```
 
 The client will be available at `http://localhost:5173` and the server at `http://localhost:4000`.
