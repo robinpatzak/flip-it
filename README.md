@@ -6,6 +6,10 @@ A real-time multiplayer memory card game built with React, Express and Socket.IO
 - [Flip It](#flip-it)
   - [Table of Contents](#table-of-contents)
   - [Features](#features)
+  - [Roadmap](#roadmap)
+    - [Coming Soon](#coming-soon)
+    - [Future Features](#future-features)
+    - [Under Consideration](#under-consideration)
   - [Project Structure](#project-structure)
   - [Prerequisites](#prerequisites)
   - [Installation](#installation)
@@ -26,6 +30,34 @@ A real-time multiplayer memory card game built with React, Express and Socket.IO
 - Host controls and player management
 - Dark/Light mode support
 - Responsive design
+  
+## Roadmap
+
+### Coming Soon
+- Custom Card Sets
+  - Create your own card pairs
+  - Save custom sets for reuse
+  - Share card sets with other players
+
+- ✨ Animations and Visual Enhancements
+  - Card flip animations
+  - Match celebration effects
+  - Room transition animations
+  - Player join/leave animations
+  - Turn indicator animations
+  - Victory celebration sequence
+
+### Future Features
+- Player Statistics
+  - Track win/loss records
+  - Personal best times
+  - Most matched pairs
+
+### Under Consideration
+- 🌐 Public Rooms
+- 🗣️ In-game Chat
+- 🎵 Sound Effects
+- 📱 Mobile App Version
 
 ## Project Structure
 
