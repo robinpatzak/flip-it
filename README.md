@@ -2,6 +2,22 @@
 
 A real-time multiplayer memory card game built with React, Express and Socket.IO. Players can create rooms, join existing ones, and play against each other by matching pairs of cards. Players can also create their own sets of memory cards to play with.
 
+## Table of Contents
+- [Flip It](#flip-it)
+  - [Table of Contents](#table-of-contents)
+  - [Features](#features)
+  - [Project Structure](#project-structure)
+  - [Prerequisites](#prerequisites)
+  - [Installation](#installation)
+  - [Development](#development)
+  - [Game Features](#game-features)
+    - [Host](#host)
+    - [Players](#players)
+  - [Tech Stack](#tech-stack)
+    - [Frontend](#frontend)
+    - [Backend](#backend)
+  - [License](#license)
+
 ## Features
 
 - Real-time multiplayer gameplay
