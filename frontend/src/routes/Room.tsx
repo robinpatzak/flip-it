@@ -1,12 +1,21 @@
+import PlayerList from "@/components/PlayerList";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import socket from "@/services/socket";
+import { GameState, Player } from "@/types/room";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Game from "./Game";
-import PlayerList from "@/components/PlayerList";
-import { GameState, Player } from "@/types/room";
 
 const Room = () => {
   const navigate = useNavigate();
@@ -19,6 +28,8 @@ const Room = () => {
   const [gameState, setGameState] = useState<GameState>("waiting");
   const [isHost, setIsHost] = useState(false);
   const [playerName, setPlayerName] = useState("");
+
+  const [cardSet, setCardSet] = useState("");
 
   const copyToClipboard = async () => {
     try {
@@ -72,6 +83,10 @@ const Room = () => {
     };
   }, [roomId, navigate]);
 
+  useEffect(() => {
+    console.log(cardSet);
+  }, [cardSet]);
+
   if (gameState === "playing" || gameState === "ending") {
     return (
       <Game
@@ -124,6 +139,40 @@ const Room = () => {
       {roomId && (
         <PlayerList isHost={isHost} players={players} roomId={roomId} />
       )}
+      <Card>
+        <CardHeader>
+          <CardTitle>Card Set</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Select
+              value={cardSet}
+              onValueChange={(newValue: string) => setCardSet(newValue)}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select a card set" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectLabel>Default Sets</SelectLabel>
+                  <SelectItem value="set1">Set1</SelectItem>
+                  <SelectItem value="set2">Set2</SelectItem>
+                  <SelectItem value="set3">Set3</SelectItem>
+                  <SelectItem value="set4">Set4</SelectItem>
+                </SelectGroup>
+                <SelectGroup>
+                  <SelectLabel>Your Card Sets</SelectLabel>
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Button className="w-full" variant="secondary">
+              Create your own
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };
