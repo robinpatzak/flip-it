@@ -1,7 +1,8 @@
 {
-  "name": "memory-io-frontend",
+  "name": "flipt-it-frontend",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.0.1",
+  "description": "Frontend for the online memory game that lets you customize card decks.",
   "type": "module",
   "scripts": {
     "dev": "vite",

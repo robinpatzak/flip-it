@@ -21,7 +21,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       <footer className="p-2 border-t">
         <div className="max-w-7xl mx-auto flex justify-end">
           <span className="flex items-center gap-1 text-sm">
-            <Copyright /> {currentYear} Robyn Phoenix
+            <Copyright /> {currentYear} RP
           </span>
         </div>
       </footer>
