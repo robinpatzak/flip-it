@@ -1,7 +1,7 @@
 {
-  "name": "memory-io-backend",
-  "version": "0.1.0",
-  "description": "Backend for a online memory game",
+  "name": "flip-it-backend",
+  "version": "0.0.1",
+  "description": "Backend for the online memory game that lets you customize card decks.",
   "main": "index.js",
   "scripts": {
     "dev": "nodemon index.ts"
